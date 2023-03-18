@@ -5,7 +5,7 @@ from email.header import Header
 from email.utils import parseaddr, formataddr
 import smtplib
 
-def _check_in():
+def _check_in(pt_key):
     url = "https://api.m.jd.com/client.action?functionId=signBeanAct&body=%7B%22fp%22%3A%22-1%22%2C%22shshshfp%22%3A%22-1%22%2C%22shshshfpa%22%3A%22-1%22%2C%22referUrl%22%3A%22-1%22%2C%22userAgent%22%3A%22-1%22%2C%22jda%22%3A%22-1%22%2C%22rnVersion%22%3A%223.9%22%7D&appid=ld&client=apple&clientVersion=10.0.4&networkType=wifi&osVersion=14.8.1&uuid=3acd1f6361f86fc0a1bc23971b2e7bbe6197afb6&openudid=3acd1f6361f86fc0a1bc23971b2e7bbe6197afb6&jsonp=jsonp_1645885800574_58482";
     headers  = {"Connection":'keep-alive',
                 "Content-Type":"application/x-www-form-urlencoded; charset=UTF-8",
@@ -14,28 +14,72 @@ def _check_in():
                 "accept": "*/*",
                 "connection": "Keep-Alive",
                 "Accept-Encoding": "gzip,deflate",
-                # you only replace pt_key after 30 day and repalace your_pt_key 
-                "Cookie": "__jd_ref_cls=JingDou_SceneHome_NewGuidExpo; \
-                        mba_muid=1645885780097318205272.81.1645885790055; \
+                # you only replace pt_key after 30day
+                "Cookie": "__jd_ref_cls=JingDou_SceneHome_NewGuidExpo;\
+                        mba_muid=1645885780097318205272.81.1645885790055;\
                         mba_sid=81.5;\
-                        __jda=122270672.1645885780097318205272.1645885780.1645885780.1645885780.1; \
-                        __jdb=122270672.1.1645885780097318205272|1.1645885780; __jdc=122270672; \
-                        __jdv=122270672%7Ckong%7Ct_1000170135%7Ctuiguang%7Cnotset%7C1644027879157; \
-                        pre_seq=0; \
-                        pre_session=3acd1f6361f86fc0a1bc23971b2e7bbe6197afb6|143; \
+                        __jda=122270672.1645885780097318205272.1645885780.1645885780.1645885780.1;\
+                        __jdb=122270672.1.1645885780097318205272|1.1645885780; __jdc=122270672;\
+                        __jdv=122270672%7Ckong%7Ct_1000170135%7Ctuiguang%7Cnotset%7C1644027879157;\
+                        pre_seq=0;\
+                        pre_session=3acd1f6361f86fc0a1bc23971b2e7bbe6197afb6|143;\
                         unpl=JF8EAKZnNSttWRkDURtVThUWHAgEWw1dH0dXOjMMAFVcTQQAEwZORxR7XlVdXhRKFx9sZhRUX1NIVw4YBCsiEEpcV1ZVC0kVAV9XNVddaEpkBRwAExEZQ1lWW1kMTBcEaWcAUVpeS1c1KwUbGyB7bVFeXAlOFQJobwxkXGhJVQQZBR0UFU1bZBUzCQYXBG1vBl1VXElRAR8FGxUWS1hRWVsISCcBb2cHUm1b%7CV2_ZzNtbRYAFxd9DUNcKRxYB2ILGloRUUYcIVpAAHsbWQZjVBEJclRCFnUUR11nGlgUZgIZXkFcQRRFCEJkexhdB24LFFtEUHMQfQ5GXH0pXAQJbRZeLAcCVEULRmR6KV5VNVYSCkVVRBUiAUEDKRgMBTRREV9KUUNGdlxAByhNWwVvBUIKEVBzJXwJdlR6GF0GZAoUWUdRQCUpUBkCJE0ZWTVcIlxyVnMURUooDytAGlU1Vl9fEgUWFSIPRFN7TlUCMFETDUIEERZ3AEBUKBoIAzRQRlpCX0VFIltBZHopXA%253d%253d; \
-                        pt_key=your_pt_key; \
-                        pt_pin=jd_IyPtvUHFxSit; \
-                        pwdt_id=jd_505bacd333f6b; \
-                        sid=1b2c8b7ce820c4188f048e689bf58c8w; \
+                        pt_key=xxx;\
+                        pt_pin=jd_IyPtvUHFxSit;\
+                        pwdt_id=jd_505bacd333f6b;\
+                        sid=1b2c8b7ce820c4188f048e689bf58c8w;\
                         visitkey=36446698972455355"
                 }
+    
+    headers["Cookie"] = replace_cookie_spaces(headers["Cookie"])
+
+    cookie = cookie_to_dict(headers["Cookie"])
+    cookie["pt_key"] = pt_key
+
+    headers["Cookie"] = dict_to_cookie(cookie)
+
     response = requests.post(url=url, headers=headers)
-    # print(response.text)
-    matchs = re.search(r'签到成功|签到失败|今天已签到', response.text, re.DOTALL)
+    print(response.text)
+    matchs = re.search(r'签到成功|签到失败|今天已签到|用户未登录', response.text, re.DOTALL)
     # print(matchs)
     return matchs.group(0)
 
+def replace_cookie_spaces(cookie):
+    new_cookie = ''
+    for i in cookie.split():
+        new_cookie += i
+    return new_cookie
+    
+'''
+Changes the cookies format to the dict format.
+'''
+def cookie_to_dict(cookie):
+    # return {item.split('=')[0]: item.split('=')[1] for item in cookie.split(';')}
+     cookie_dic = {}
+     for i in cookie.split(';'):
+         cookie_dic[i.split('=')[0]] = i.split('=')[1]
+     return cookie_dic
+
+def dict_to_cookie(dic):
+    dic = str(dic)
+    cookie = re.sub(r'\{|\}|\'|\ |\,|\:', replace, dic)
+    # cookie = re.sub(r'\{|\}|\'|\ ', "", dic)
+    # cookie = re.sub(r'\,', ";", cookie)
+    # cookie = re.sub(r'\:', "=", cookie)
+    return cookie
+
+'''
+Changes the dict format to the cookies format.
+dict format: {'key1': 'value1', 'key2': 'value2'...etc}
+cookie format: key1=value1;key2=value2;...etc
+'''
+def replace(match):
+    if match.group(0) == ",":
+        return ';'
+    elif match.group(0) == ":":
+        return '='
+    else:
+        return ''
 
 def _format_addr(s):
     name, addr = parseaddr(s)
@@ -69,6 +113,8 @@ if __name__=="__main__":
     to_addr = 'XXXX@XX.com'
     # qq邮箱的服务器地址
     smpt_server = 'smtp.XX.com'
-
-    matchs = _check_in()
+    # 添加你的pt_key
+    pt_key = "YOUR_PT_KEY"
+    
+    matchs = _check_in(pt_key)
     _send_message(form_addr, password, to_addr, smpt_server, matchs)
